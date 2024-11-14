@@ -1,0 +1,104 @@
+docker exec -it mysql-container mysql -u root -p
+
+USE librarydb;
+
+
+CREATE TABLE IF NOT EXISTS books (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    isbn VARCHAR(20) UNIQUE NOT NULL,
+    published_date DATE,
+    available BOOLEAN DEFAULT TRUE
+);
+
+
+INSERT INTO books (title, author, isbn, published_date, available) VALUES
+    ('To Kill a Mockingbird', 'Harper Lee', '9780061120084', '1960-07-11', TRUE),
+    ('1984', 'George Orwell', '9780451524935', '1949-06-08', TRUE),
+    ('Pride and Prejudice', 'Jane Austen', '9780141439518', '1813-01-28', TRUE),
+    ('The Great Gatsby', 'F. Scott Fitzgerald', '9780743273565', '1925-04-10', FALSE),
+    ('Moby-Dick', 'Herman Melville', '9781503280786', '1851-10-18', TRUE),
+    ('War and Peace', 'Leo Tolstoy', '9780199232765', '1869-01-01', TRUE),
+    ('The Catcher in the Rye', 'J.D. Salinger', '9780316769488', '1951-07-16', TRUE),
+    ('The Hobbit', 'J.R.R. Tolkien', '9780547928227', '1937-09-21', TRUE),
+    ('Fahrenheit 451', 'Ray Bradbury', '9781451673319', '1953-10-19', TRUE),
+    ('Jane Eyre', 'Charlotte Brontë', '9780142437209', '1847-10-16', TRUE);
+	
+	
+	
+	
+CREATE DATABASE lib_reservation;
+
+use lib_reservation;
+
+CREATE TABLE reservations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    book_id BIGINT NOT NULL,
+    reservation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('ACTIVE', 'CANCELLED') DEFAULT 'ACTIVE',
+    FOREIGN KEY (book_id) REFERENCES lib_books.books(id) ON DELETE CASCADE
+);
+
+INSERT INTO reservations (user_id, book_id, reservation_date, status) VALUES
+(1, 1, NOW(), 'ACTIVE'),
+(2, 2, NOW(), 'ACTIVE'),
+(3, 3, NOW(), 'CANCELLED');
+
+CREATE DATABASE lib_books;
+
+use lib_books;
+
+CREATE TABLE books (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    isbn VARCHAR(50) UNIQUE NOT NULL,
+    available BOOLEAN DEFAULT TRUE
+);
+
+INSERT INTO books (title, author, isbn, available) VALUES
+('The God of Small Things', 'Arundhati Roy', '9780679772590', TRUE),
+('Midnights Children', 'Salman Rushdie', '9780812976533', TRUE),
+('Train to Pakistan', 'Khushwant Singh', '9780143065883', TRUE),
+('The White Tiger', 'Aravind Adiga', '9781416562603', TRUE),
+('A Suitable Boy', 'Vikram Seth', '9780060786526', TRUE),
+('In Custody', 'Anita Desai', '9788184000667', TRUE),
+('The Guide', 'R.K. Narayan', '9788185986076', TRUE),
+('Interpreter of Maladies', 'Jhumpa Lahiri', '9780395927205', TRUE),
+('Gitanjali', 'Rabindranath Tagore', '9780143066569', TRUE),
+('Malgudi Days', 'R.K. Narayan', '9788185986106', TRUE);
+
+
+
+
+
+
+
+
+
+docker build -t eureka-server .
+docker build -t lib-book .
+docker build -t lib-reservation .
+
+docker run -d --name eureka-server -p 8761:8761 eureka-server
+docker run -d --name lib-book -p 8080:8080 --network libnet lib-book
+docker run -d --name lib-reservation -p 8081:8081 lib-reservation
+
+
+docker network create library-network
+
+docker network connect library-network mysql-container
+docker network connect library-network lib-reservation
+docker network connect library-network lib-book
+
+
+docker-compose up --build
+
+
+
+
+docker run -d --name mysql --network libnet -e MYSQL_ROOT_PASSWORD=librarypass -e MYSQL_DATABASE=lib_books -p 3306:3306 mysql:latest
+
+docker run -d --name lib-book --network libnet -e MYSQL_HOST=mysql -p 8080:8080 lib-book
