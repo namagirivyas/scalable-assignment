@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lib-books
+  labels:
+    app: lib-books
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lib-books
+  template:
+    metadata:
+      labels:
+        app: lib-books
+    spec:
+      containers:
+      - name: lib-books
+        image: namagirivyas1/lib-books:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: lib-books
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name # Uses pod name
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          value: "http://eureka-server:8761/eureka/"
+        - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
+          value: "true"
+        - name: EUREKA_CLIENT_FETCH_REGISTRY
+          value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lib-books
+  labels:
+    app: lib-books
+spec:
+  selector:
+    app: lib-books
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  # type: ClusterIP # Use NodePort or LoadBalancer for external access
+  type: NodePort
+

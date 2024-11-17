@@ -82,14 +82,16 @@ mvn clean install
 docker build -t eureka-server .
 docker run -d --name eureka-server -p 8761:8761 eureka-server or 
 docker run -d --name eureka-server -p 8761:8761 --network libnet eureka-server
+minikube image load eureka-server:latest
+
 
 mvn clean install
 docker build -t api-gateway .
 docker run -d --name api-gateway -p 8765:8765 --network libnet api-gateway
 
 mvn clean install
-docker build -t lib-book .
-docker run -d --name lib-book -p 8080:8080 --network libnet lib-book
+docker build -t lib-books .
+docker run -d --name lib-books -p 8080:8080 --network libnet lib-books
 
 mvn clean install
 docker build -t lib-reservation .
@@ -135,3 +137,70 @@ docker run -d --name mysql-container1 \
   
 docker exec -it mysql-container1 mysql -u root -p
 
+
+minikube start
+
+kubectl version
+minikube status 
+
+minikube dashboard
+
+#kubectl create deployment eureka-server-deployment --image=eureka-server:latest
+kubectl apply –f eureka-deployment.yml
+
+
+
+
+
+Docker Commands 
+docker login -u userid -p "pwd" docker.io
+
+docker login -u namagirivyas1 -p "pwd" docker.io
+docker tag eureka-server:latest namagirivyas1/eureka-server:latest
+docker push namagirivyas1/eureka-server:latest
+kubectl port-forward service/eureka-server 8761:8761
+
+docker login -u namagirivyas1 -p "pwd" docker.io
+docker tag api-gateway:latest namagirivyas1/api-gateway:latest
+docker push namagirivyas1/api-gateway:latest
+kubectl apply –f gateway-deployment.yml
+kubectl port-forward service/api-gateway 8765:8765
+
+
+docker login -u namagirivyas1 -p "pwd" docker.io
+docker tag mysql:8.0 namagirivyas1/mysql:8.0
+docker push namagirivyas1/mysql:8.0
+kubectl apply –f mysql-deployment.yml
+
+
+
+$ kubectl get pods
+NAME                             READY   STATUS    RESTARTS   AGE
+api-gateway-7fd9c89f5-gnxnj      1/1     Running   0          31m
+api-gateway-7fd9c89f5-qmctc      1/1     Running   0          31m
+api-gateway-7fd9c89f5-x22bd      1/1     Running   0          31m
+eureka-server-5b65b844b9-h8qbk   1/1     Running   0          39m
+eureka-server-5b65b844b9-k6sx6   1/1     Running   0          39m
+eureka-server-5b65b844b9-z9x8w   1/1     Running   0          39m
+mysql-77cf95f6fc-pvxv2           1/1     Running   0          5m20s
+
+$ kubectl exec -it mysql-77cf95f6fc-pvxv2 -- mysql -u root -p
+Enter password:
+
+mvn clean install
+docker build -t lib-books .
+docker login -u namagirivyas1 -p "pwd" docker.io
+docker tag lib-books:latest namagirivyas1/lib-books:latest
+docker push namagirivyas1/lib-books:latest
+kubectl apply –f books-deployment.yml
+kubectl port-forward service/lib-books 8080:8080
+
+mvn clean install
+docker build -t lib-reservation .
+docker login -u namagirivyas1 -p "pwd" docker.io
+docker tag lib-reservation:latest namagirivyas1/lib-reservation:latest
+docker push namagirivyas1/lib-reservation:latest
+kubectl apply –f reservation-deployment.yml
+kubectl port-forward service/lib-reservation 8081:8081
+
+kubectl exec -it api-gateway-7fd9c89f5-8lctt -- curl http://lib-books:8080
