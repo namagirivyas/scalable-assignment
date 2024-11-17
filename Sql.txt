@@ -1,5 +1,6 @@
-docker exec -it mysql-container mysql -u root -p
+docker exec -it mysql-container1 mysql -u root -p
 
+CREATE DATABASE librarydb;
 USE librarydb;
 
 
@@ -26,26 +27,6 @@ INSERT INTO books (title, author, isbn, published_date, available) VALUES
     ('Jane Eyre', 'Charlotte Brontë', '9780142437209', '1847-10-16', TRUE);
 	
 	
-	
-	
-CREATE DATABASE lib_reservation;
-
-use lib_reservation;
-
-CREATE TABLE reservations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    book_id BIGINT NOT NULL,
-    reservation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('ACTIVE', 'CANCELLED') DEFAULT 'ACTIVE',
-    FOREIGN KEY (book_id) REFERENCES lib_books.books(id) ON DELETE CASCADE
-);
-
-INSERT INTO reservations (user_id, book_id, reservation_date, status) VALUES
-(1, 1, NOW(), 'ACTIVE'),
-(2, 2, NOW(), 'ACTIVE'),
-(3, 3, NOW(), 'CANCELLED');
-
 CREATE DATABASE lib_books;
 
 use lib_books;
@@ -69,6 +50,25 @@ INSERT INTO books (title, author, isbn, available) VALUES
 ('Interpreter of Maladies', 'Jhumpa Lahiri', '9780395927205', TRUE),
 ('Gitanjali', 'Rabindranath Tagore', '9780143066569', TRUE),
 ('Malgudi Days', 'R.K. Narayan', '9788185986106', TRUE);
+	
+	
+CREATE DATABASE lib_reservation;
+
+use lib_reservation;
+
+CREATE TABLE reservations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    book_id BIGINT NOT NULL,
+    reservation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('ACTIVE', 'CANCELLED') DEFAULT 'ACTIVE',
+    FOREIGN KEY (book_id) REFERENCES lib_books.books(id) ON DELETE CASCADE
+);
+
+INSERT INTO reservations (user_id, book_id, reservation_date, status) VALUES
+(1, 1, NOW(), 'ACTIVE'),
+(2, 2, NOW(), 'ACTIVE'),
+(3, 3, NOW(), 'CANCELLED');
 
 
 
@@ -78,18 +78,33 @@ INSERT INTO books (title, author, isbn, available) VALUES
 
 
 
+mvn clean install
 docker build -t eureka-server .
+docker run -d --name eureka-server -p 8761:8761 eureka-server or 
+docker run -d --name eureka-server -p 8761:8761 --network libnet eureka-server
+
+mvn clean install
+docker build -t api-gateway .
+docker run -d --name api-gateway -p 8765:8765 --network libnet api-gateway
+
+mvn clean install
 docker build -t lib-book .
-docker build -t lib-reservation .
-
-docker run -d --name eureka-server -p 8761:8761 eureka-server
 docker run -d --name lib-book -p 8080:8080 --network libnet lib-book
-docker run -d --name lib-reservation -p 8081:8081 lib-reservation
+
+mvn clean install
+docker build -t lib-reservation .
+docker run -d --name lib-reservation -p 8081:8081 --network libnet lib-reservation
+
+WITH LIBNET
+docker run -d --name eureka-server -p 8761:8761 eureka-server
+docker run -d --name api-gateway -p 8765:8765 --network libnet api-gateway
+docker run -d --name lib-book -p 8080:8080 --network libnet lib-book
+docker run -d --name lib-reservation -p 8081:8081 --network libnet lib-reservation
 
 
-docker network create library-network
+docker network create libnet
 
-docker network connect library-network mysql-container
+docker network connect library-network mysql-container1
 docker network connect library-network lib-reservation
 docker network connect library-network lib-book
 
@@ -99,6 +114,24 @@ docker-compose up --build
 
 
 
-docker run -d --name mysql --network libnet -e MYSQL_ROOT_PASSWORD=librarypass -e MYSQL_DATABASE=lib_books -p 3306:3306 mysql:latest
+docker run -d --name mysql-container1 --network libnet -e MYSQL_ROOT_PASSWORD=librarypass -e MYSQL_DATABASE=lib_books -p 3306:3306 mysql:latest
 
 docker run -d --name lib-book --network libnet -e MYSQL_HOST=mysql -p 8080:8080 lib-book
+
+docker run -d --name eureka-server -p 8761:8761 --network libnet eureka-server
+
+
+
+--- NAMAGIRI-----
+docker build -t mysql .
+
+docker run -d --name mysql-container1 \
+  -e MYSQL_ROOT_PASSWORD=librarypass \
+  -e MYSQL_DATABASE=mysql-container1 \
+  -e MYSQL_USER=myuser \
+  -e MYSQL_PASSWORD=librarypass \
+  -p 3306:3306 \
+  mysql:8.0
+  
+docker exec -it mysql-container1 mysql -u root -p
+

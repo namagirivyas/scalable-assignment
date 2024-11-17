@@ -1,0 +1,31 @@
+server:
+  port: 8765 # Port for the API Gateway
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true  # Enables routing through Eureka
+      routes:
+        - id: lib-books-service
+          uri: lb://LIB-BOOKS  # lb:// indicates Load Balancer for Eureka
+          predicates:
+            - Path=/lib-books/**
+          filters:
+            - StripPrefix=1 # Strip lib-books
+        - id: lib-reservation-service
+          uri: lb://lib-reservation  # lb:// indicates Load Balancer for Eureka
+          predicates:
+            - Path=/lib-reservation/**
+          filters:
+            - StripPrefix=1 # Strip lib-reservation
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/ # Eureka server URL
+  instance:
+    prefer-ip-address: true  # Use IP address for registration

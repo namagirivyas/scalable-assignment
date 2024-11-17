@@ -1,0 +1,14 @@
+# OpenJDK 17 image
+FROM openjdk:17-jdk-slim
+
+# Working directory
+WORKDIR /app
+
+# Copy eureka jar to run
+COPY eureka-server.jar eureka-server.jar
+
+# Expose the eureka port
+EXPOSE 8761
+
+# Run the Eureka Server
+ENTRYPOINT ["java", "-jar", "eureka-server.jar"]

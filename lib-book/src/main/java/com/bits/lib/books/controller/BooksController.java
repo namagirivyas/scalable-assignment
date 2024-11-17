@@ -2,11 +2,15 @@ package com.bits.lib.books.controller;
 
 import com.bits.lib.books.entity.Books;
 import com.bits.lib.books.service.BooksService;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@Slf4j
 @RequestMapping("/api/books")
 public class BooksController {
 
@@ -16,8 +20,9 @@ public class BooksController {
         this.bookService = booksService;
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public List<Books> getAllBooks() {
+    	log.info("Inside get all books");
         return bookService.getAllBooks();
     }
 
